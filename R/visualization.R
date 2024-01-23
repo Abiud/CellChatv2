@@ -1814,11 +1814,9 @@ netVisual_diffInteraction <- function(object, comparison = c(1,2), measure = c("
 #' @importFrom ComplexHeatmap Heatmap HeatmapAnnotation anno_barplot rowAnnotation
 #' @return  an object of ComplexHeatmap
 #' @export
-netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("#2166ac","#b2182b"),
+netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", "weight"), signaling = NULL, slot.name = c("netP", "net"), color.use = NULL, color.heatmap = c("Reds"),
                               title.name = NULL, width = NULL, height = NULL, font.size = 8, font.size.title = 10, cluster.rows = FALSE, cluster.cols = FALSE,
                               sources.use = NULL, targets.use = NULL, remove.isolate = FALSE, row.show = NULL, col.show = NULL){
-  # obj1 <- object.list[[comparison[1]]]
-  # obj2 <- object.list[[comparison[2]]]
   if (!is.null(measure)) {
     measure <- match.arg(measure)
   }
@@ -1864,7 +1862,6 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
 
   net <- net.diff
 
-
   if ((!is.null(sources.use)) | (!is.null(targets.use))) {
     df.net <- reshape2::melt(net, value.name = "value")
     colnames(df.net)[1:2] <- c("source","target")
@@ -1889,28 +1886,38 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   net[is.na(net)] <- 0
 
+  if (is.null(color.use)) {
+    color.use <- scPalette(ncol(net))
+  }
+  names(color.use) <- colnames(net)
+  color.use.row <- color.use
+  color.use.col <- color.use
   if (remove.isolate) {
     idx1 <- which(Matrix::rowSums(net) == 0)
     idx2 <- which(Matrix::colSums(net) == 0)
-    idx <- intersect(idx1, idx2)
-    if (length(idx) > 0) {
-      net <- net[-idx, ]
-      net <- net[, -idx]
+    #idx <- intersect(idx1, idx2)
+    # if (length(idx) > 0) {
+    #   net <- net[-idx, ]
+    #   net <- net[, -idx]
+    # }
+    if (length(idx1) > 0) {
+      net <- net[-idx1, ]
+      color.use.row <- color.use.row[-idx1]
+    }
+    if (length(idx2) > 0) {
+      net <- net[, -idx2]
+      color.use.col <- color.use.col[-idx2]
     }
   }
 
   mat <- net
-  if (is.null(color.use)) {
-    color.use <- scPalette(ncol(mat))
-  }
-  names(color.use) <- colnames(mat)
-
   if (!is.null(row.show)) {
     mat <- mat[row.show, ]
+    color.use.row <- color.use.row[row.show]
   }
   if (!is.null(col.show)) {
     mat <- mat[ ,col.show]
-    color.use <- color.use[col.show]
+    color.use.col <- color.use.col[col.show]
   }
 
 
@@ -1930,16 +1937,17 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
   }
   # col_fun(as.vector(mat))
 
-  df<- data.frame(group = colnames(mat)); rownames(df) <- colnames(mat)
-  col_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use),which = "column",
+  df.col<- data.frame(group = colnames(mat)); rownames(df.col) <- colnames(mat)
+  df.row<- data.frame(group = rownames(mat)); rownames(df.row) <- rownames(mat)
+  col_annotation <- HeatmapAnnotation(df = df.col, col = list(group = color.use.col),which = "column",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
-  row_annotation <- HeatmapAnnotation(df = df, col = list(group = color.use), which = "row",
+  row_annotation <- HeatmapAnnotation(df = df.row, col = list(group = color.use.row), which = "row",
                                       show_legend = FALSE, show_annotation_name = FALSE,
                                       simple_anno_size = grid::unit(0.2, "cm"))
 
-  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
-  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use, col=color.use)), show_annotation_name = FALSE)
+  ha1 = rowAnnotation(Strength = anno_barplot(rowSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.row, col=color.use.row)), show_annotation_name = FALSE)
+  ha2 = HeatmapAnnotation(Strength = anno_barplot(colSums(abs(mat)), border = FALSE,gp = gpar(fill = color.use.col, col=color.use.col)), show_annotation_name = FALSE)
 
   if (sum(abs(mat) > 0) == 1) {
     color.heatmap.use = c("white", color.heatmap.use)
@@ -1950,7 +1958,7 @@ netVisual_heatmap <- function(object, comparison = c(1,2), measure = c("count", 
                 bottom_annotation = col_annotation, left_annotation =row_annotation, top_annotation = ha2, right_annotation = ha1,
                 cluster_rows = cluster.rows,cluster_columns = cluster.rows,
                 row_names_side = "left",row_names_rot = 0,row_names_gp = gpar(fontsize = font.size),column_names_gp = gpar(fontsize = font.size),
-               # width = unit(width, "cm"), height = unit(height, "cm"),
+                # width = unit(width, "cm"), height = unit(height, "cm"),
                 column_title = title.name,column_title_gp = gpar(fontsize = font.size.title),column_names_rot = 90,
                 row_title = "Sources (Sender)",row_title_gp = gpar(fontsize = font.size.title),row_title_rot = 90,
                 heatmap_legend_param = list(title_gp = gpar(fontsize = 8, fontface = "plain"),title_position = "leftcenter-rot",
@@ -2088,6 +2096,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #' @param line.size size of vertical line if added
 #' @param color.text.use whether color the xtick labels according to the dataset origin when doing comparison analysis
 #' @param color.text the colors for xtick labels according to the dataset origin when doing comparison analysis
+#' @param dot.size.min,dot.size.max Size of smallest and largest points
 #' @param title.name main title of the plot
 #' @param font.size,font.size.title font size of all the text and the title name
 #' @param show.legend whether show legend
@@ -2129,7 +2138,7 @@ netVisual_barplot <- function(object, comparison = c(1,2), measure = c("count", 
 #'}
 netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, signaling = NULL, pairLR.use = NULL, sort.by.source = FALSE, sort.by.target = FALSE, sort.by.source.priority = TRUE, color.heatmap = c("Spectral","viridis"), n.colors = 10, direction = -1, thresh = 0.05,
                              comparison = NULL, group = NULL, remove.isolate = FALSE, max.dataset = NULL, min.dataset = NULL,
-                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL,
+                             min.quantile = 0, max.quantile = 1, line.on = TRUE, line.size = 0.2, color.text.use = TRUE, color.text = NULL, dot.size.min = NULL, dot.size.max = NULL,
                              title.name = NULL, font.size = 10, font.size.title = 10, show.legend = TRUE,
                              grid.on = TRUE, color.grid = "grey90", angle.x = 90, vjust.x = NULL, hjust.x = NULL,
                              return.data = FALSE){
@@ -2333,10 +2342,10 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
         #idx.na <- c(which(is.na(values)), which(!(dataset.name[comparison] %in% df.i.j$dataset)))
         dataset.na <- c(df.i.j$dataset[is.na(values)], setdiff(dataset.name[comparison], df.i.j$dataset))
         if (length(idx.max) > 0) {
-          if (!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset])) {
+          if (all(!(df.i.j$dataset[idx.max] %in% dataset.name[max.dataset]))) {
             df.i.j$prob <- NA
-          } else if ((idx.max != idx.min) & !is.null(min.dataset)) {
-            if (!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset])) {
+          } else if (all((idx.max != idx.min) & !is.null(min.dataset))) {
+            if (all(!(df.i.j$dataset[idx.min] %in% dataset.name[min.dataset]))) {
               df.i.j$prob <- NA
             } else if (length(dataset.na) > 0 & sum(!(dataset.name[min.dataset] %in% dataset.na)) > 0) {
               df.i.j$prob <- NA
@@ -2406,7 +2415,13 @@ netVisual_bubble <- function(object, sources.use = NULL, targets.use = NULL, sig
     scale_x_discrete(position = "bottom")
 
   values <- c(1,2,3); names(values) <- c("p > 0.05", "0.01 < p < 0.05","p < 0.01")
-  g <- g + scale_radius(range = c(min(df$pval), max(df$pval)), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
+  if (is.null(dot.size.max)) {
+    dot.size.max = max(df$pval)
+  }
+  if (is.null(dot.size.min)) {
+    dot.size.min = min(df$pval)
+  }
+  g <- g + scale_radius(range = c(dot.size.min, dot.size.max), breaks = sort(unique(df$pval)),labels = names(values)[values %in% sort(unique(df$pval))], name = "p-value")
   #g <- g + scale_radius(range = c(1,3), breaks = values,labels = names(values), name = "p-value")
   if (min(df$prob, na.rm = T) != max(df$prob, na.rm = T)) {
     g <- g + scale_colour_gradientn(colors = colorRampPalette(color.use)(99), na.value = "white", limits=c(quantile(df$prob, 0,na.rm= T), quantile(df$prob, 1,na.rm= T)),
