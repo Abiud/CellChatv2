@@ -245,17 +245,17 @@ subsetData <- function(object, features = NULL) {
   interaction_input <- object@DB$interaction
   if (object@options$datatype != "RNA") {
     if ("annotation" %in% colnames(interaction_input) == FALSE) {
-      warning("The column named `annotation` is required in `object@DB$interaction` when running CellChat on spatial transcriptomics!")
-      warning("The `annotation` column is now automatically added and all L-R pairs are considered as `Secreted Signaling`, which means that these L-R pairs are assumed to mediate long-range communication (~250um).")
+      warning("A column named `annotation` is required in `object@DB$interaction` when running CellChat on spatial transcriptomics! The `annotation` column is now automatically added and all L-R pairs are assigned as `Secreted Signaling`, which means that these L-R pairs are assumed to mediate diffusion-based cellular communication.")
+      interaction_input$annotation <- "Secreted Signaling"
     }
   }
   if ("annotation" %in% colnames(interaction_input) == TRUE) {
     if (length(unique(interaction_input$annotation)) > 1) {
-      interaction_input$annotation <- factor(interaction_input$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Cell-Cell Contact", "Non-protein Signaling"))
+      interaction_input$annotation <- factor(interaction_input$annotation, levels = c("Secreted Signaling", "ECM-Receptor", "Non-protein Signaling", "Cell-Cell Contact"))
       interaction_input <- interaction_input[order(interaction_input$annotation), , drop = FALSE]
       interaction_input$annotation <- as.character(interaction_input$annotation)
-      object@DB$interaction <- interaction_input
     }
+    object@DB$interaction <- interaction_input
   }
 
   if (is.null(features)) {
@@ -290,9 +290,9 @@ subsetData <- function(object, features = NULL) {
 #' @param only.pos Only return positive markers
 #' @param features features used for identifying Over Expressed genes. default use all features
 #' @param return.object whether to return the object; otherwise return a data frame consisting of over-expressed signaling genes associated with each cell group
-#' @param thresh.pc Threshold of the percent of cells expressed in one cluster
-#' @param thresh.fc Threshold of Log Fold Change
-#' @param thresh.p Threshold of p-values
+#' @param thresh.pc Threshold of the fraction of cells expressed in one cluster, i.e., thresh.pc = 0.1
+#' @param thresh.fc Threshold of Log Fold Change, i.e., thresh.pc = 0.1
+#' @param thresh.p Threshold of p-values, i.e., thresh.pc = 0.05
 #' @param do.DE Whether to perform differential expression analysis. By default do.DE = TRUE; When do.DE = FALSE, selecting over-expressed genes that are expressed in more than `min.cells` cells.
 #' @param do.fast If do.fast = TRUE, then perform a ultra-fast Wilcoxon test using presto package; otherwise using stats package. These two methods produce different logFC values, and the presto::wilcoxauc method gives smaller values.
 #' @param min.cells the minmum number of expressed cells required for the genes that are considered for cell-cell communication analysis
