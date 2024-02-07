@@ -3862,7 +3862,7 @@ plotGeneExpression <- function(object, features = NULL, signaling = NULL, enrich
     feature.use <- res$geneLR
   }
   if (type == "violin") {
-    gg <- StackedVlnPlot(w10x, features = feature.use, color.use = color.use, ...)
+    gg <- StackedVlnPlot(w10x, features = feature.use, colors.use = color.use, ...)
   } else if (type == "dot") {
     gg <- dotPlot(w10x, features = feature.use, color.use = color.use, ...)
   } else if (type == "bar") {
