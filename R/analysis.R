@@ -2252,6 +2252,7 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
     stop("Please run `netAnalysis_computeCentrality` to compute the network centrality scores! ")
   }
   centr <- slot(object, slot.name)$centr[signaling]
+  heatmapList <- list()
   for(i in 1:length(centr)) {
     centr0 <- centr[[i]]
     mat <- matrix(unlist(centr0), ncol = length(centr0), byrow = FALSE)
@@ -2286,8 +2287,10 @@ netAnalysis_signalingRole_network <- function(object, signaling, slot.name = "ne
                                               border = NA, at = c(round(min(mat, na.rm = T), digits = 1), round(max(mat, na.rm = T), digits = 1)),
                                               legend_height = unit(20, "mm"),labels_gp = gpar(fontsize = 8),grid_width = unit(2, "mm"))
     )
-    draw(ht1)
+    # draw(ht1)
+    heatmapList[[i]] <- ht1
   }
+  return(heatmapList)
 }
 
 
